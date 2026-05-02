@@ -8,10 +8,17 @@ let startButton;
 let currentRow;
 let currentCol;
 let currentShape;
+
+let lineClearCount;
+let score;
+let multiplyer;
+
+let holdShape;
+
+
 const allShapes = [
-  [
-    [1, 1],
-    [1, 1]
+  [[1, 1],
+  [1, 1]
   ],
 
   [
@@ -100,9 +107,6 @@ function drawBoard() {
 
 
 function checkIfRowFull(row) {
-  console.log("Currently checking row: " + row)
-  console.log("The board being hecked is: ")
-  console.log(board);
   for (let j = 0; j < BOARD_WIDTH; j++) {
     if (board[row][j] == 0) {
       return false;
@@ -112,6 +116,7 @@ function checkIfRowFull(row) {
 }
 
 function makeLineClears() {
+  // TODO: Tetrises don't get done for some reason
   for (let i = BOARD_HEIGHT - 1; i > 0; i--) {
     if (checkIfRowFull(i)) {
       for (let movingRow = i; movingRow > 0; movingRow--) {
@@ -122,7 +127,7 @@ function makeLineClears() {
       for (let j = 0; j < BOARD_WIDTH; j++) {
         board[0][j] == 0;
       }
-      i = BOARD_HEIGHT - 1
+      i = BOARD_HEIGHT
     }
   }
 }
@@ -132,6 +137,18 @@ function generateNewPiece() {
   currentRow = 0;
   currentCol = 4;
   currentShape = allShapes[Math.floor(Math.random() * allShapes.length)];
+
+  if (canBeDrawnWithoutUndrawing(currentRow, currentCol, currentShape)) {
+    console.log("La nueva pieza puede ser dibujada");
+    drawCurrentPiece(currentRow, currentCol);
+    drawBoard();
+  } else {
+    console.log("La nueva pieza no debería poder ser dibujada");
+
+    gameOver();
+
+  }
+
   drawBoard();
 
 }
@@ -157,6 +174,30 @@ function undrawCurrentPiece() {
   }
 }
 
+// Esto definitivamente es mala práctica, pero lo corregiré después 
+//
+function canBeDrawnWithoutUndrawing(row, col, shape) {
+  for (let i = 0; i < shape.length; i++) {
+    for (let j = 0; j < shape.length; j++) {
+      if (shape[i][j] != 0) {
+
+        let inBounds = ((row + i < BOARD_HEIGHT) && (col + j >= 0) && (col + j < BOARD_WIDTH));
+        if (inBounds) {
+          // console.log("Comparing: " + shape[i][j] + " and " + board[row + i][row + j]);
+          if (shape[i][j] != 0 && board[row + i][col + j] != 0) {
+            // console.log("Se ha retornado false porque hay una piza en donde debería estar")
+
+            return false;
+          }
+        } else {
+          // console.log("Se ha retornado false porque está out of bounds")
+          return false;
+        }
+      }
+    }
+  }
+  return true;
+}
 function canBeDrawn(row, col, shape) {
   undrawCurrentPiece();
   for (let i = 0; i < shape.length; i++) {
@@ -225,43 +266,87 @@ function attemptRotation() {
 }
 
 
+function holdPiece() {
+  undrawCurrentPiece();
+  let buffer;
+  buffer = holdShape;
+  holdShape = currentShape;
+  if (buffer != undefined) {
+    currentShape = buffer;
+  } else {
+    currentShape = allShapes[Math.floor(Math.random() * allShapes.length)];
+  }
+  currentRow = 0;
+  currentCol = 4;
+  drawCurrentPiece(currentRow, currentCol, currentShape);
+
+}
+
+
+const handleInput = (event) => {
+  console.log(event.key);
+  if (event.key == "ArrowRight") {
+    movePiece(currentRow, currentCol + 1);
+  }
+  else if (event.key == "ArrowLeft") {
+    movePiece(currentRow, currentCol - 1);
+  }
+  else if (event.key == "ArrowDown") {
+    movePiece(currentRow + 1, currentCol);
+  }
+  else if (event.key == "ArrowUp") {
+    attemptRotation();
+  }
+  else if (event.key == "c") {
+    holdPiece();
+  }
+  else if (event.key == " ") {
+    hardDrop();
+  }
+}
+
+// TODO: Limpiar la lógica del lowering
 function startGame() {
+  for (let i = 0; i < BOARD_HEIGHT; i++) {
+    for (let j = 0; j < BOARD_WIDTH; j++) {
+      board[i][j] = 0;
+    }
+  }
+  console.log("Se ha llamado startGame")
+
   generateNewPiece();
+
   drawCurrentPiece(currentRow, currentCol);
   console.log(board);
 
   drawBoard();
+
+  if (globalThis.lowering != undefined) {
+    clearInterval(lowering)
+  }
+  const lowering = setInterval(() => { pieceLower(); }, 500)
+  globalThis.lowering = lowering;
+
+}
+
+function gameOver() {
+  if (globalThis.lowering != undefined) {
+    clearInterval(globalThis.lowering);
+  }
+  let gameOverElement = document.getElementById("game-over");
+  document.removeEventListener("keydown", handleInput)
 
 
 }
 
 
 
-
 document.addEventListener("DOMContentLoaded", () => {
   boardElement = document.getElementById("board");
   startButton = document.getElementsByName("start-button");
-  startGame();
-  const lowering = setInterval(() => { pieceLower(); }, 500)
 
-  document.addEventListener("keydown", (event) => {
-    console.log(event.key);
-    if (event.key == "ArrowRight") {
-      movePiece(currentRow, currentCol + 1);
-    }
-    else if (event.key == "ArrowLeft") {
-      movePiece(currentRow, currentCol - 1);
-    }
-    else if (event.key == "ArrowDown") {
-      movePiece(currentRow + 1, currentCol);
-    }
-    else if (event.key == "ArrowUp") {
-      attemptRotation()
-    }
-    else if (event.key == " ") {
-      hardDrop();
-    }
-  })
+  document.addEventListener("keydown", handleInput)
+  drawBoard();
 })
 
 

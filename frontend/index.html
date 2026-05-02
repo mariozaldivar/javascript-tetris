@@ -14,11 +14,19 @@
     <h1>Bienvenido a Tetris by Mario!</h1>
     <p>Este es un experimento de Mario en el que, desde tu computadora puedes jugar una partida de Tetris, y guardarla
       al marcador global :)</p>
-    <button id="start-game" onclick="startGame()">Iniciar juego</button>
+    <button id="start-game" onclick="startGame(); blur()">Iniciar juego</button>
 
     <div id="board"></div>
 
     <div id="game-over"></div>
+
+    <div>
+      <h3 id="score">Score: </h3>
+      <h4 id="level">Level: </h4>
+    </div>
+
+    <h3>Hold piece: (Presiona "C" para holdear)</h3>
+    <div id="hold-piece"></div>
   </main>
 
 </body>

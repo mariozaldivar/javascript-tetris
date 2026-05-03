@@ -12,6 +12,11 @@ let currentRow;
 let currentCol;
 let currentShape;
 
+let ghostPieceRow;
+let ghostPieceCol;
+let ghostPieceShape;
+
+
 let lineClearCount = 0;
 let lastClearedLinesCounter;
 let score = 0;
@@ -67,6 +72,9 @@ const allShapes = [
   ],
 ];
 
+
+
+
 function drawBoard() {
   boardElement.replaceChildren();
   let currentBlock;
@@ -104,6 +112,9 @@ function drawBoard() {
         default:
           currentBlock.style.backgroundColor = "black";
           break;
+      }
+      if (board[i][j] < 0) {
+        currentBlock.style.opacity = .5;
       }
 
 
@@ -186,6 +197,70 @@ function updateScore(lines) {
 
 }
 
+function calculateGhostPiece(shape) {
+
+
+  /*
+   * Estructura del algoritmo: 
+   * Desdibuja la currentPiece -> Clona la currentPieceShape pero con números negativos ->
+   * Simula un PieceLower pero con la GhostPiece -> La función es llamada al generar una nueva pieza, 
+   * -> La función es llamada al mover manualmente una pieza.
+   *
+   * CanBeDrawn debe estar modificado para que no tome en cuenta las piezas menores que 0, y permita dibujar encima de ellos
+   *
+   * */
+
+  undrawCurrentPiece();
+
+  ghostPieceShape = makeGhostPiece(shape);
+  ghostPieceRow = currentRow;
+  ghostPieceCol = currentCol;
+
+  while (canBeDrawn(ghostPieceRow + 1, ghostPieceCol, ghostPieceShape)) {
+    drawGhostPiece(ghostPieceRow + 1, ghostPieceCol);
+
+  }
+
+  drawCurrentPiece(currentRow, currentCol);
+
+}
+
+function drawGhostPiece(row, col) {
+  for (let i = 0; i < ghostPieceShape.length; i++) {
+    for (let j = 0; j < ghostPieceShape.length; j++) {
+      if (ghostPieceShape[i][j] != 0) {
+        board[row + i][col + j] = ghostPieceShape[i][j];
+      }
+    }
+  }
+  ghostPieceRow = row;
+  ghostPieceCol = col;
+}
+
+function undrawGhostPiece() {
+  for (let i = 0; i < ghostPieceShape.length; i++) {
+    for (let j = 0; j < ghostPieceShape.length; j++) {
+      if (ghostPieceShape[i][j] != 0) {
+        board[ghostPieceRow + i][ghostPieceCol + j] = 0;
+      }
+    }
+  }
+}
+
+function makeGhostPiece(shape) {
+  let buffer = shape;
+  for (let i = 0; i < shape.length; i++) {
+    for (let j = 0; j < shape.length; j++) {
+      if (shape[i][j] != 0) {
+        buffer[i][j] = 0 - shape[i][j];
+      }
+    }
+  }
+  return buffer;
+}
+
+
+
 
 function generateNewPiece() {
   makeLineClears()
@@ -201,13 +276,19 @@ function generateNewPiece() {
     console.log("La nueva pieza no debería poder ser dibujada");
 
     gameOver();
+    drawBoard();
+    return;
 
   }
+
+  calculateGhostPiece(currentShape);
 
   holdedThisTurn = false;
   drawBoard();
 
 }
+
+
 function getNextRotation(shape) {
   let buffer = Array.from({ length: shape.length }, () => Array(shape.length).fill(0));
   ;
@@ -261,7 +342,7 @@ function canBeDrawn(row, col, shape) {
       if (shape[i][j] != 0) {
         let inBounds = ((row + i >= 0) && (row + i < BOARD_HEIGHT) && (col + j >= 0) && (col + j < BOARD_WIDTH));
         if (inBounds) {
-          if (shape[i][j] != 0 && board[row + i][col + j] != 0) {
+          if (shape[i][j] != 0 && board[row + i][col + j] > 0) {
             return false;
           }
         } else { return false; }
@@ -311,6 +392,7 @@ function hardDrop() {
 function movePiece(row, col) {
   if (canBeDrawn(row, col, currentShape)) {
     drawCurrentPiece(row, col)
+    calculateGhostPiece(currentShape)
   } else {
     drawCurrentPiece(currentRow, currentCol, currentShape);
   }
@@ -433,6 +515,7 @@ function startGame() {
   }
   playing = true;
   console.log("Se ha llamado startGame")
+
 
   generateNewPiece();
 

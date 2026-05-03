@@ -12,6 +12,7 @@ let currentRow;
 let currentCol;
 let currentShape;
 
+
 let ghostPieceRow;
 let ghostPieceCol;
 let ghostPieceShape;
@@ -197,31 +198,40 @@ function updateScore(lines) {
 
 }
 
-function calculateGhostPiece(shape) {
+function calculateGhostPiece() {
+  // Si ya existe una ghostPiece, eliminarla 
+
+  if (ghostPieceShape != undefined) {
+    undrawPiece(ghostPieceRow, ghostPieceCol, ghostPieceShape);
+  }
+  undrawCurrentPiece();
+
+  // Clona la currentPiece 
+  ghostPieceRow = currentRow;
+  ghostPieceCol = currentCol;
+  ghostPieceShape = makeGhostPiece(structuredClone(currentShape));
 
 
+  while (canGhostPieceBeDrawn(ghostPieceRow + 1, ghostPieceCol, ghostPieceShape)) {
+    ghostPieceRow++;
+    console.log("Se verificó que se podía bajar la Ghostpiece a la row: " + ghostPieceRow);
+  }
+  drawGhostPiece(ghostPieceRow, ghostPieceCol);
+
+  console.log("Ghost Piece is currently at: x: " + ghostPieceCol + "  y: " + ghostPieceRow);
+
+
+  drawCurrentPiece(currentRow, currentCol);
+  drawBoard();
   /*
    * Estructura del algoritmo: 
    * Desdibuja la currentPiece -> Clona la currentPieceShape pero con números negativos ->
    * Simula un PieceLower pero con la GhostPiece -> La función es llamada al generar una nueva pieza, 
-   * -> La función es llamada al mover manualmente una pieza.
+   * -> La función es llamada al mover manualmente una pieza, o rotarla 
    *
    * CanBeDrawn debe estar modificado para que no tome en cuenta las piezas menores que 0, y permita dibujar encima de ellos
    *
    * */
-
-  undrawCurrentPiece();
-
-  ghostPieceShape = makeGhostPiece(shape);
-  ghostPieceRow = currentRow;
-  ghostPieceCol = currentCol;
-
-  while (canBeDrawn(ghostPieceRow + 1, ghostPieceCol, ghostPieceShape)) {
-    drawGhostPiece(ghostPieceRow + 1, ghostPieceCol);
-
-  }
-
-  drawCurrentPiece(currentRow, currentCol);
 
 }
 
@@ -237,11 +247,34 @@ function drawGhostPiece(row, col) {
   ghostPieceCol = col;
 }
 
-function undrawGhostPiece() {
-  for (let i = 0; i < ghostPieceShape.length; i++) {
-    for (let j = 0; j < ghostPieceShape.length; j++) {
-      if (ghostPieceShape[i][j] != 0) {
-        board[ghostPieceRow + i][ghostPieceCol + j] = 0;
+function canGhostPieceBeDrawn(row, col, shape) {
+  undrawPiece(ghostPieceRow, ghostPieceCol, ghostPieceShape)
+  for (let i = 0; i < shape.length; i++) {
+    for (let j = 0; j < shape.length; j++) {
+      if (shape[i][j] != 0) {
+        let inBounds = ((row + i >= 0) && (row + i < BOARD_HEIGHT) && (col + j >= 0) && (col + j < BOARD_WIDTH));
+        if (inBounds) {
+          if (shape[i][j] != 0 && board[row + i][col + j] != 0) {
+            console.log("La ghost piece ya no puede bajar en: " + ghostPieceRow + "porque " + shape[i][j] + "choca con " + board[row + i][col + j] + " en x: " + (col + j) + "  y: " + (row + i))
+            return false;
+
+          }
+        } else {
+          return false;
+        }
+      }
+
+    }
+  }
+  return true;
+
+}
+
+function undrawPiece(row, col, shape) {
+  for (let i = 0; i < shape.length; i++) {
+    for (let j = 0; j < shape.length; j++) {
+      if (shape[i][j] != 0 && shape[i][j] == board[row + i][col + j]) {
+        board[row + i][col + j] = 0;
       }
     }
   }
@@ -256,6 +289,7 @@ function makeGhostPiece(shape) {
       }
     }
   }
+  console.log(buffer);
   return buffer;
 }
 
@@ -281,10 +315,13 @@ function generateNewPiece() {
 
   }
 
-  calculateGhostPiece(currentShape);
+  // calculateGhostPiece(currentShape);
 
   holdedThisTurn = false;
+  calculateGhostPiece();
   drawBoard();
+
+
 
 }
 
@@ -304,7 +341,7 @@ function getNextRotation(shape) {
 function undrawCurrentPiece() {
   for (let i = 0; i < currentShape.length; i++) {
     for (let j = 0; j < currentShape.length; j++) {
-      if (currentShape[i][j] != 0) {
+      if (currentShape[i][j] != 0 && currentShape[i][j] == board[currentRow + i][currentCol + j]) {
         board[currentRow + i][currentCol + j] = 0;
       }
     }
@@ -321,7 +358,7 @@ function canBeDrawnWithoutUndrawing(row, col, shape) {
         let inBounds = ((row + i < BOARD_HEIGHT) && (col + j >= 0) && (col + j < BOARD_WIDTH));
         if (inBounds) {
           // console.log("Comparing: " + shape[i][j] + " and " + board[row + i][row + j]);
-          if (shape[i][j] != 0 && board[row + i][col + j] != 0) {
+          if (shape[i][j] != 0 && board[row + i][col + j] > 0) {
             // console.log("Se ha retornado false porque hay una piza en donde debería estar")
 
             return false;
@@ -392,7 +429,7 @@ function hardDrop() {
 function movePiece(row, col) {
   if (canBeDrawn(row, col, currentShape)) {
     drawCurrentPiece(row, col)
-    calculateGhostPiece(currentShape)
+    calculateGhostPiece();
   } else {
     drawCurrentPiece(currentRow, currentCol, currentShape);
   }
@@ -403,6 +440,7 @@ function attemptRotation() {
   if (canBeDrawn(currentRow, currentCol, buffer)) {
     currentShape = buffer;
     drawCurrentPiece(currentRow, currentCol);
+    calculateGhostPiece();
   } else {
     drawCurrentPiece(currentRow, currentCol);
   }
@@ -475,6 +513,7 @@ function holdPiece() {
     currentRow = 0;
     currentCol = 4;
     drawCurrentPiece(currentRow, currentCol, currentShape);
+    calculateGhostPiece();
     holdedThisTurn = true;
   }
 

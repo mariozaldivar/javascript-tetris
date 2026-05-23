@@ -7,6 +7,7 @@ let scoreElement;
 let levelElement;
 let holdPieceElement;
 let gameOverElement;
+let gameClearsElement;
 
 let currentRow;
 let currentCol;
@@ -30,6 +31,7 @@ let holdedThisTurn;
 
 let playing;
 
+const keys = {};
 
 const allShapes = [
   [[1, 1],
@@ -69,8 +71,7 @@ const allShapes = [
   [
     [0, 7, 0],
     [7, 7, 7],
-    [0, 0, 0]
-  ],
+    [0, 0, 0]],
 ];
 
 
@@ -94,8 +95,7 @@ function drawBoard() {
           break;
         case 2:
           currentBlock.style.backgroundColor = "blue";
-          break;
-        case 3:
+          break; case 3:
           currentBlock.style.backgroundColor = "yellow";
           break;
         case 4:
@@ -168,18 +168,23 @@ function updateScore(lines) {
   switch (lines) {
     case 0:
       points = 0;
+      scoreElement.textContent = "";
       break;
     case 1:
       points = 100;
+      scoreElement.textContent = "¡Single!";
       break;
     case 2:
       points = 200;
+      scoreElement.textContent = "¡Double!";
       break;
     case 3:
       points = 300;
+      scoreElement.textContent = "¡¡Triple!!"
       break;
     case 4:
       points = 400;
+      scoreElement.textContent = "¡¡¡Tetris!!!";
       break;
     default:
       console.log("There's been a problem with lines");
@@ -195,6 +200,9 @@ function updateScore(lines) {
   scoreElement.textContent = "Score: " + score;
 
   levelElement.textContent = "Level: " + level;
+
+  updateSpeed(1000 - level * 16.67);
+
 
 }
 
@@ -315,7 +323,6 @@ function generateNewPiece() {
 
   }
 
-  // calculateGhostPiece(currentShape);
 
   holdedThisTurn = false;
   calculateGhostPiece();
@@ -331,7 +338,7 @@ function getNextRotation(shape) {
   ;
   for (let i = 0; i < shape.length; i++) {
     for (let j = 0; j < shape.length; j++) {
-      buffer[i][j] = shape[j][shape.length - 1 - i];
+      buffer[i][j] = shape[(shape.length - 1) - j][i];
     }
   }
 
@@ -409,8 +416,8 @@ function pieceLower() {
 
   } else {
     drawCurrentPiece(currentRow, currentCol, currentShape);
-
     generateNewPiece();
+
   }
 }
 function hardDrop() {
@@ -545,8 +552,15 @@ const handleInput = (event) => {
   }
 }
 
+
+function updateSpeed(newSpeed) {
+  clearInterval(globalThis.lowering)
+  lowering = setInterval(() => { pieceLower(); }, newSpeed);
+}
+
 // TODO: Limpiar la lógica del lowering
 function startGame() {
+
   for (let i = 0; i < BOARD_HEIGHT; i++) {
     for (let j = 0; j < BOARD_WIDTH; j++) {
       board[i][j] = 0;
@@ -554,6 +568,7 @@ function startGame() {
   }
   playing = true;
   console.log("Se ha llamado startGame")
+  document.addEventListener("keydown", handleInput)
 
 
   generateNewPiece();
@@ -571,6 +586,9 @@ function startGame() {
 
   score = 0;
   level = 1;
+  gameOverElement.textContent = "";
+  holdPieceElement.replaceChildren();
+  holdShape = undefined;
 }
 
 function gameOver() {
@@ -580,6 +598,7 @@ function gameOver() {
   let gameOverText = document.createElement("h2");
   gameOverText.textContent = "¡¡Game Over!!";
   gameOverElement.appendChild(gameOverText);
+  drawCurrentPiece(currentRow, currentCol)
   playing = false;
   document.removeEventListener("keydown", handleInput);
 
@@ -592,11 +611,11 @@ function gameOver() {
 document.addEventListener("DOMContentLoaded", () => {
   boardElement = document.getElementById("board");
   startButtonElement = document.getElementById("start-button");
-  scoreElement = document.getElementById("score")
-  levelElement = document.getElementById("level")
-  holdPieceElement = document.getElementById("hold-piece")
-  gameOverElement = document.getElementById("game-over")
-  document.addEventListener("keydown", handleInput)
+  scoreElement = document.getElementById("score");
+  levelElement = document.getElementById("level");
+  holdPieceElement = document.getElementById("hold-piece");
+  gameOverElement = document.getElementById("game-over");
+  gameClearsElement = document.getElementById("last-clear");
   drawBoard();
 
 
